@@ -55,7 +55,7 @@ fragment ProductAttribute on ProductAttribute {
   label
   scope
   ... on GlobalProductAttribute {
-    terms(where: { orderby: MENU_ORDER, order: ASC }) {
+    terms {
       nodes {
         name
         slug

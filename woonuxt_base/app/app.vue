@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import '@/assets/css/gutenberg.css';
 const route = useRoute();
 const { isShowingCart, toggleCart } = useCart();
 const { isShowingMobileMenu, toggleMobileMenu, addBodyClass, removeBodyClass } = useHelpers();
