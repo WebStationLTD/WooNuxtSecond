@@ -95,7 +95,6 @@ export default defineNuxtConfig({
       "/contact": { static: true },
 
       // Частично кеширани с ISR (Incremental Static Regeneration)
-
       "/product/**": {
         isr: {
           expiration: 1800, // 30 минути
@@ -107,11 +106,29 @@ export default defineNuxtConfig({
         },
       },
 
-      // Страници с SSR, без кеш
+      // Страници с SSR, без кеш - тук са страниците, които са динамични и не трябва да се кешират
       "/checkout/**": { ssr: true, cache: false },
-
-      "/cart": { ssr: true, cache: false },
       "/my-account/**": { ssr: true, cache: false },
+
+      // Специални настройки за количката
+      "/cart": {
+        ssr: true,
+        cache: false,
+        swr: false, // Изключване на stale-while-revalidate
+      },
+      "/cart/**": {
+        ssr: true,
+        cache: false,
+        swr: false,
+      },
+      "/api/cart/**": {
+        ssr: true,
+        cache: false,
+      },
+      "/api/session/**": {
+        ssr: true,
+        cache: false,
+      },
     },
   },
 
