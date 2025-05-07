@@ -1,0 +1,46 @@
+query getCart {
+  cart {
+    ...Cart
+  }
+  customer {
+    ...Customer
+  }
+  viewer {
+    ...Viewer
+  }
+  paymentGateways {
+    nodes {
+      ...PaymentGateway
+    }
+  }
+  loginClients {
+    ...LoginClient
+  }
+}
+
+fragment Viewer on User {
+  lastName
+  email
+  databaseId
+  id
+  firstName
+  username
+  nicename
+  wooSessionToken
+  avatar {
+    url
+  }
+}
+
+fragment PaymentGateway on PaymentGateway {
+  title
+  id
+  description
+}
+
+fragment LoginClient on LoginClient {
+  name
+  provider
+  isEnabled
+  authorizationUrl
+}
