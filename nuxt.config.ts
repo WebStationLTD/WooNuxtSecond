@@ -28,7 +28,7 @@ export default defineNuxtConfig({
 
   components: [{ path: "./components", pathPrefix: false }],
 
-  modules: ["nuxt-graphql-client", "@nuxtjs/sitemap"],
+  modules: ["nuxt-graphql-client"],
 
   experimental: {
     payloadExtraction: true,
