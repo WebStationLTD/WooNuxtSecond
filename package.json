@@ -4,7 +4,7 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev --host",
-    "dev:ssl": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 nuxt dev --https --ssl-cert localhost.pem --ssl-key localhost-key.pem",
+    "dev:ssl": "NODE_TLS_REJECT_UNAUTHORIZED=0 nuxt dev --https --ssl-cert localhost.pem --ssl-key localhost-key.pem",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
@@ -13,18 +13,16 @@
   "dependencies": {
     "@stripe/stripe-js": "^4.10.0",
     "@vueform/slider": "^2.1.10",
-    "@vueuse/core": "^13.0.0"
+    "@vueuse/core": "^13.1.0"
   },
   "devDependencies": {
-    "@iconify-json/ion": "^1.2.2",
-    "@nuxt/icon": "^1.11.0",
+    "@nuxt/icon": "^1.12.0",
     "@nuxt/image": "1.10.0",
     "@nuxtjs/i18n": "^9.5.2",
-    "@nuxtjs/tailwindcss": "^6.13.2",
+    "@nuxtjs/tailwindcss": "^6.14.0",
     "@tailwindcss/typography": "^0.5.16",
-    "cross-env": "^7.0.3",
-    "nuxt": "^3.16.2",
-    "nuxt-graphql-client": "^0.2.45",
+    "nuxt": "^3.17.2",
+    "nuxt-graphql-client": "^0.2.46",
     "prettier": "^3.5.3",
     "woonuxt-settings": "^1.2.1"
   },
@@ -32,6 +30,6 @@
     "sharp": "0.32.6"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "4.39.0"
+    "@rollup/rollup-linux-x64-gnu": "4.40.1"
   }
 }

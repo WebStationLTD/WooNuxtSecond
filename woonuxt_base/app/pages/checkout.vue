@@ -4,7 +4,6 @@ import type { Stripe, StripeElements, CreateSourceData, StripeCardElement } from
 
 const { t } = useI18n();
 const { query } = useRoute();
-const router = useRouter();
 const { cart, isUpdatingCart, paymentGateways } = useCart();
 const { customer, viewer } = useAuth();
 const { orderInput, isProcessingOrder, processCheckout } = useCheckout();
@@ -26,19 +25,13 @@ onBeforeMount(async () => {
 const payNow = async () => {
   buttonText.value = t('messages.general.processing');
 
+  const { stripePaymentIntent } = await GqlGetStripePaymentIntent();
+  const clientSecret = stripePaymentIntent?.clientSecret || '';
+
   try {
-    const method = orderInput.value.paymentMethod?.id;
-
-    if (method === 'stripe' && stripe && elements.value) {
-      const { stripePaymentIntent } = await GqlGetStripePaymentIntent();
-      const clientSecret = stripePaymentIntent?.clientSecret || '';
-
+    if (orderInput.value.paymentMethod.id === 'stripe' && stripe && elements.value) {
       const cardElement = elements.value.getElement('card') as StripeCardElement;
-
-      const { setupIntent } = await stripe.confirmCardSetup(clientSecret, {
-        payment_method: { card: cardElement }
-      });
-
+      const { setupIntent } = await stripe.confirmCardSetup(clientSecret, { payment_method: { card: cardElement } });
       const { source } = await stripe.createSource(cardElement as CreateSourceData);
 
       if (source) orderInput.value.metaData.push({ key: '_stripe_source_id', value: source.id });
@@ -46,28 +39,13 @@ const payNow = async () => {
 
       isPaid.value = setupIntent?.status === 'succeeded' || false;
       orderInput.value.transactionId = source?.created?.toString() || new Date().getTime().toString();
-    } else if (method === 'cod') {
-      isPaid.value = false;
-      orderInput.value.transactionId = new Date().getTime().toString();
-      orderInput.value.metaData.push({ key: '_chosen_payment_method', value: 'cash_on_delivery' });
-    } else {
-      isPaid.value = false;
-      orderInput.value.transactionId = new Date().getTime().toString();
-      orderInput.value.metaData.push({ key: '_chosen_payment_method', value: method });
-    }
-
-    const order = await processCheckout(isPaid.value);
-
-    if (order?.databaseId) {
-      router.push('/thank-you');
-    } else {
-      console.error('❌ Няма order.databaseId → не може да се направи redirect');
-      throw new Error('Няма order ID за redirect!');
     }
   } catch (error) {
-    console.error('❌ Грешка при плащане или завършване на поръчката:', error);
+    console.error(error);
     buttonText.value = t('messages.shop.placeOrder');
   }
+
+  processCheckout(isPaid.value);
 };
 
 const handleStripeElement = (stripeElements: StripeElements): void => {
@@ -96,20 +74,19 @@ useSeoMeta({
         <Icon name="ion:cart-outline" size="156" class="opacity-25 mb-5" />
         <h2 class="text-2xl font-bold mb-2">{{ $t('messages.shop.cartEmpty') }}</h2>
         <span class="text-gray-400 mb-4">{{ $t('messages.shop.addProductsInYourCart') }}</span>
-        <NuxtLink to="/products" class="flex items-center justify-center gap-3 p-2 px-3 mt-4 font-semibold text-center text-white rounded-lg shadow-md bg-primary hover:bg-primary-dark">
+        <NuxtLink
+          to="/products"
+          class="flex items-center justify-center gap-3 p-2 px-3 mt-4 font-semibold text-center text-white rounded-lg shadow-md bg-primary hover:bg-primary-dark">
           {{ $t('messages.shop.browseOurProducts') }}
         </NuxtLink>
       </div>
 
       <form v-else class="container flex flex-wrap items-start gap-8 my-16 justify-evenly lg:gap-20" @submit.prevent="payNow">
         <div class="grid w-full max-w-2xl gap-8 checkout-form md:flex-1">
-          <div v-if="!viewer && customer?.billing">
+          <!-- Customer details -->
+          <div v-if="!viewer && customer.billing">
             <h2 class="w-full mb-2 text-2xl font-semibold leading-none">Contact Information</h2>
-            <p class="mt-1 text-sm text-gray-500">
-              {{ $t('messages.account.alreadyRegistered') }}
-              <NuxtLink to="/my-account" class="text-primary font-semibold">{{ $t('messages.account.login') }}</NuxtLink>
-            </p>
-
+            <p class="mt-1 text-sm text-gray-500">Already have an account? <a href="/my-account" class="text-primary text-semibold">Log in</a>.</p>
             <div class="w-full mt-4">
               <label for="email">{{ $t('messages.billing.email') }}</label>
               <input
@@ -126,14 +103,28 @@ useSeoMeta({
                 <div v-if="isInvalidEmail" class="mt-1 text-sm text-red-500">Invalid email address</div>
               </Transition>
             </div>
+            <template v-if="orderInput.createAccount">
+              <div class="w-full mt-4">
+                <label for="username">{{ $t('messages.account.username') }}</label>
+                <input v-model="orderInput.username" placeholder="johndoe" autocomplete="username" type="text" name="username" required />
+              </div>
+              <div class="w-full my-2" v-if="orderInput.createAccount">
+                <label for="email">{{ $t('messages.account.password') }}</label>
+                <PasswordInput id="password" class="my-2" v-model="orderInput.password" placeholder="••••••••••" :required="true" />
+              </div>
+            </template>
+            <div v-if="!viewer" class="flex items-center gap-2 my-2">
+              <label for="creat-account">Create an account?</label>
+              <input id="creat-account" v-model="orderInput.createAccount" type="checkbox" name="creat-account" />
+            </div>
           </div>
 
           <div>
             <h2 class="w-full mb-3 text-2xl font-semibold">{{ $t('messages.billing.billingDetails') }}</h2>
-            <BillingDetails :model-value="customer?.billing || {}" />
+            <BillingDetails v-model="customer.billing" />
           </div>
 
-          <label v-if="cart.availableShippingMethods && cart.availableShippingMethods.length > 0" for="shipToDifferentAddress" class="flex items-center gap-2">
+          <label v-if="cart.availableShippingMethods.length > 0" for="shipToDifferentAddress" class="flex items-center gap-2">
             <span>{{ $t('messages.billing.differentAddress') }}</span>
             <input id="shipToDifferentAddress" v-model="orderInput.shipToDifferentAddress" type="checkbox" name="shipToDifferentAddress" />
           </label>
@@ -141,21 +132,24 @@ useSeoMeta({
           <Transition name="scale-y" mode="out-in">
             <div v-if="orderInput.shipToDifferentAddress">
               <h2 class="mb-4 text-xl font-semibold">{{ $t('messages.general.shippingDetails') }}</h2>
-              <ShippingDetails :model-value="customer?.shipping || {}" />
+              <ShippingDetails v-model="customer.shipping" />
             </div>
           </Transition>
 
-          <div v-if="cart.availableShippingMethods && cart.availableShippingMethods.length">
+          <!-- Shipping methods -->
+          <div v-if="cart.availableShippingMethods.length">
             <h3 class="mb-4 text-xl font-semibold">{{ $t('messages.general.shippingSelect') }}</h3>
-            <ShippingOptions :options="cart.availableShippingMethods?.[0]?.rates || []" :active-option="cart.chosenShippingMethods?.[0] || ''" />
+            <ShippingOptions :options="cart.availableShippingMethods[0].rates" :active-option="cart.chosenShippingMethods[0]" />
           </div>
 
+          <!-- Pay methods -->
           <div v-if="paymentGateways?.nodes.length" class="mt-2 col-span-full">
             <h2 class="mb-4 text-xl font-semibold">{{ $t('messages.billing.paymentOptions') }}</h2>
             <PaymentOptions v-model="orderInput.paymentMethod" class="mb-4" :paymentGateways />
-            <StripeElement v-if="stripe" v-show="orderInput.paymentMethod?.id == 'stripe'" :stripe @updateElement="handleStripeElement" />
+            <StripeElement v-if="stripe" v-show="orderInput.paymentMethod.id == 'stripe'" :stripe @updateElement="handleStripeElement" />
           </div>
 
+          <!-- Order note -->
           <div>
             <h2 class="mb-4 text-xl font-semibold">{{ $t('messages.shop.orderNote') }} ({{ $t('messages.general.optional') }})</h2>
             <textarea
